@@ -1,0 +1,9 @@
+opencv-python==4.13.0.92
+mediapipe==0.10.30
+numpy==2.4.4
+pillow==12.2.0
+matplotlib==3.10.8
+tensorflow==2.21.0
+tensorflow-hub==0.16.1
+cvzone==1.6.1
+setuptools==70.0.0

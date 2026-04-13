@@ -24,7 +24,7 @@ class HandDetector:
             (5, 9), (9, 13), (13, 17)            # Palm
         ]
 
-    def findHands(self, img, draw=True, offset=20):
+    def findHands(self, img, draw=False, offset=20):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_rgb)
         bbox = None
@@ -46,6 +46,22 @@ class HandDetector:
                 
                 all_hands.append(pixel_landmarks)
 
+                # 1. Get all x and y coordinates in pixels
+                x_coords = [int(lm.x * w) for lm in hand_landmarks]
+                y_coords = [int(lm.y * h) for lm in hand_landmarks]
+
+                # 2. Calculate the bounding box with offset and boundary checks
+                x_min, x_max = min(x_coords), max(x_coords)
+                y_min, y_max = min(y_coords), max(y_coords)
+                
+                x1 = max(0, x_min - offset)
+                y1 = max(0, y_min - offset)
+                x2 = min(w, x_max + offset)
+                y2 = min(h, y_max + offset)
+                
+                bw, bh = x2 - x1, y2 - y1
+                bbox = [x1, y1, bw, bh]
+
                 if draw:
                     # Draw Connections (Lines)
                     for connection in self.HAND_CONNECTIONS:
@@ -57,23 +73,27 @@ class HandDetector:
                     for point in pixel_landmarks:
                         cv2.circle(img, point, 4, (0, 255, 0), -1)
 
-                    # 1. Get all x and y coordinates in pixels
-                    x_coords = [int(lm.x * w) for lm in hand_landmarks]
-                    y_coords = [int(lm.y * h) for lm in hand_landmarks]
-
-                    # 2. Calculate the bounding box with offset and boundary checks
-                    x_min, x_max = min(x_coords), max(x_coords)
-                    y_min, y_max = min(y_coords), max(y_coords)
-                    
-                    x1 = max(0, x_min - offset)
-                    y1 = max(0, y_min - offset)
-                    x2 = min(w, x_max + offset)
-                    y2 = min(h, y_max + offset)
-                    
-                    bw, bh = x2 - x1, y2 - y1
-                    bbox = [x1, y1, bw, bh]
-
                     # 3. Draw it to verify
                     cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         
         return all_hands, img, bbox
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--visuals', action='store_true', default=False, help='Show visuals')
+    args = parser.parse_args()
+
+    cap = cv2.VideoCapture(0)
+    detector = HandDetector()
+    while cap.isOpened():
+        success, img = cap.read()
+        if not success: break
+        
+        hands, img, bbox = detector.findHands(img, draw=args.visuals)
+        cv2.imshow("Hand Tracking Module", img)
+        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
