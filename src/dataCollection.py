@@ -1,4 +1,5 @@
 import cv2
+import os
 from HandTrackingModule import HandDetector
 import numpy as np
 import time
@@ -11,7 +12,7 @@ parser.add_argument(
     help="Display hand visuals (landmarks and bounding box)"
 )
 parser.add_argument(
-    "--model", default="best_model.keras",
+    "--model", default="bingus_model.keras",
     help="Path to saved model"
 )
 parser.add_argument(
@@ -21,17 +22,36 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = args.model
+if not os.path.isabs(MODEL_PATH):
+    MODEL_PATH = os.path.join(CURRENT_DIR, MODEL_PATH)
+
+TRAIN_DIR = os.path.join(CURRENT_DIR, "Data", "split", "train")
+COLLECTED_DIR = os.path.join(CURRENT_DIR, "Data", "collected")
+
 cap = cv2.VideoCapture(0)
 detector = HandDetector(num_hands=1)
 imgSize = 299
 show_visuals = args.visuals
 
-folder = "Data/collected"
+folder = COLLECTED_DIR
 
-if args.model:
-    model = tf.keras.models.load_model(args.model)
-class_names = ["A", "B", "C"]
-print(f"Model loaded from {args.model}")
+if MODEL_PATH:
+    model = tf.keras.models.load_model(MODEL_PATH)
+
+class_names = sorted([
+    entry for entry in os.listdir(TRAIN_DIR)
+    if os.path.isdir(os.path.join(TRAIN_DIR, entry))
+])
+
+if model.output_shape[-1] != len(class_names):
+    raise ValueError(
+        f"Model outputs {model.output_shape[-1]} classes, but {len(class_names)} "
+        f"class folders were found in {TRAIN_DIR}: {class_names}"
+    )
+
+print(f"Model loaded from {MODEL_PATH}")
 print(f"Classes: {class_names}")
 
 last_prediction_time = 0
@@ -78,6 +98,7 @@ while cap.isOpened():
 
     # Save image if in collection mode and SPACE is pressed
     if args.collect and key == ord(" "):
+        os.makedirs(os.path.join(folder, args.collect), exist_ok=True)
         save_path = f"{folder}/{args.collect}/Image_{time.time()}.jpg"
         cv2.imwrite(save_path, imgResize)
         print(f"Saved: {save_path}")
