@@ -1,17 +1,31 @@
 import os
 import cv2
 import numpy as np
-from HandTrackingModule import HandDetector
+
+try:
+    from ..HandTrackingModule import HandDetector
+except ImportError:
+    import sys
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(current_dir)
+    if src_dir not in sys.path:
+        sys.path.append(src_dir)
+    from HandTrackingModule import HandDetector
+
 
 def process_images():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(current_dir)
+
     # Configuration
-    input_folder = 'Data/collected'
-    output_folder = 'Data/processed'
+    input_folder = os.path.join(src_dir, 'Data', 'collected')
+    output_folder = os.path.join(src_dir, 'Data', 'processed')
+    model_path = os.path.join(current_dir, 'hand_landmarker.task')
     img_size = 299
     
     # Initialize the HandDetector
-    # Note: HandDetector expects 'hand_landmarker.task' in the same directory (src/)
-    detector = HandDetector(model_path='hand_landmarker.task', num_hands=1)
+    detector = HandDetector(model_path=model_path, num_hands=1)
 
     # Ensure output directory exists
     if not os.path.exists(output_folder):
@@ -89,13 +103,4 @@ def process_images():
     print(f"Hands not detected: {failed_detections}")
 
 if __name__ == "__main__":
-    # Change CWD to script's directory if necessary or assume running from project root
-    # Since it's in src/, we should check where we are.
-    # The HandDetector expects the .task file in the relative path.
-    # I'll add a check or assume we run from src/.
-    
-    # Get the directory of the current script
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(current_dir)
-    
     process_images()

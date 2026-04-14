@@ -1,6 +1,46 @@
-import tensorflow as tf
 import os
+import sys
+from pathlib import Path
+
+
+def ensure_cuda_library_path():
+    if os.environ.get("TF_CUDA_LIBS_READY") == "1":
+        return
+
+    site_packages = Path(sys.prefix) / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages" / "nvidia"
+    lib_dirs = [
+        site_packages / "cuda_runtime" / "lib",
+        site_packages / "cudnn" / "lib",
+        site_packages / "cublas" / "lib",
+        site_packages / "cufft" / "lib",
+        site_packages / "curand" / "lib",
+        site_packages / "cusolver" / "lib",
+        site_packages / "cusparse" / "lib",
+        site_packages / "nccl" / "lib",
+        site_packages / "nvjitlink" / "lib",
+    ]
+    existing_dirs = [str(path) for path in lib_dirs if path.exists()]
+
+    if not existing_dirs:
+        return
+
+    current_ld_path = os.environ.get("LD_LIBRARY_PATH", "")
+    current_entries = [entry for entry in current_ld_path.split(":") if entry]
+    new_entries = [entry for entry in existing_dirs if entry not in current_entries]
+    if not new_entries:
+        return
+
+    os.environ["LD_LIBRARY_PATH"] = ":".join(new_entries + current_entries)
+    os.environ["TF_CUDA_LIBS_READY"] = "1"
+    os.execvpe(sys.executable, [sys.executable] + sys.argv, os.environ)
+
+
+ensure_cuda_library_path()
+
+import tensorflow as tf
 from augmentation import augment
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 IMG_SIZE = (299, 299)
@@ -12,12 +52,26 @@ STAGE2_LR = 0.0001
 FINE_TUNE_LAYERS = 30  
 SEED = 123
 
-DATA_DIR_TRAIN = "./Data/split/train"
-DATA_DIR_VAL = "./Data/split/val"
-DATA_DIR_TEST = "./Data/split/test"
+DATA_DIR_TRAIN = os.path.join(CURRENT_DIR, "Data", "split", "train")
+DATA_DIR_VAL = os.path.join(CURRENT_DIR, "Data", "split", "val")
+DATA_DIR_TEST = os.path.join(CURRENT_DIR, "Data", "split", "test")
 
-MODEL_SAVE_PATH = "best_model.keras"
+MODEL_SAVE_PATH = os.path.join(CURRENT_DIR, "bingus_model.keras")
 
+
+def configure_device():
+    gpus = tf.config.list_physical_devices("GPU")
+    if not gpus:
+        print("No GPU detected by TensorFlow. Training will run on CPU.")
+        return
+
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+
+    print(f"Using GPU: {[gpu.name for gpu in gpus]}")
+
+
+configure_device()
 
 print("Loading datasets...")
 

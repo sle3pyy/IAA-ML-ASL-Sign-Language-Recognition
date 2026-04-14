@@ -11,34 +11,34 @@ TRAIN_RATIO = 0.70
 VAL_RATIO = 0.15
 TEST_RATIO = 0.15
 
-SOURCE_DIR = "Data/processed"
-OUTPUT_DIRS = {
-    "train": "Data/split/train",
-    "val": "Data/split/val",
-    "test": "Data/split/test",
-}
-
-
 def split_data():
     random.seed(SEED)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(current_dir)
+    source_dir = os.path.join(src_dir, "Data", "processed")
+    output_dirs = {
+        "train": os.path.join(src_dir, "Data", "split", "train"),
+        "val": os.path.join(src_dir, "Data", "split", "val"),
+        "test": os.path.join(src_dir, "Data", "split", "test"),
+    }
 
     # Clean up any previous split
-    split_root = "Data/split"
+    split_root = os.path.join(src_dir, "Data", "split")
     if os.path.exists(split_root):
         shutil.rmtree(split_root)
         print(f"Removed existing {split_root}/")
 
     # Get class folders
     class_names = sorted([
-        d for d in os.listdir(SOURCE_DIR)
-        if os.path.isdir(os.path.join(SOURCE_DIR, d))
+        d for d in os.listdir(source_dir)
+        if os.path.isdir(os.path.join(source_dir, d))
     ])
     print(f"Found classes: {class_names}")
 
     stats = {"train": {}, "val": {}, "test": {}}
 
     for class_name in class_names:
-        class_path = os.path.join(SOURCE_DIR, class_name)
+        class_path = os.path.join(source_dir, class_name)
 
         # Get all image files
         images = sorted([
@@ -60,7 +60,7 @@ def split_data():
         }
 
         for split_name, split_images in splits.items():
-            target_dir = os.path.join(OUTPUT_DIRS[split_name], class_name)
+            target_dir = os.path.join(output_dirs[split_name], class_name)
             os.makedirs(target_dir, exist_ok=True)
 
             for img_name in split_images:
@@ -82,8 +82,4 @@ def split_data():
 
 
 if __name__ == "__main__":
-    # Run from src/ directory
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(current_dir)
-
     split_data()

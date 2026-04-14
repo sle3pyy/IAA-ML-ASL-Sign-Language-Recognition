@@ -28,8 +28,8 @@ show_visuals = args.visuals
 
 folder = "Data/collected"
 
-
-model = tf.keras.models.load_model(args.model)
+if args.model:
+    model = tf.keras.models.load_model(args.model)
 class_names = ["A", "B", "C"]
 print(f"Model loaded from {args.model}")
 print(f"Classes: {class_names}")
