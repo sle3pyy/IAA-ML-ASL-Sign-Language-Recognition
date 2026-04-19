@@ -22,7 +22,7 @@ def split_data():
         "test": os.path.join(src_dir, "Data", "split", "test"),
     }
 
-    # Clean up any previous split
+    # Remove previous split dataset so run starts clean.
     split_root = os.path.join(src_dir, "Data", "split")
     if os.path.exists(split_root):
         shutil.rmtree(split_root)

@@ -1,4 +1,5 @@
 import os
+import shutil
 import cv2
 import numpy as np
 
@@ -27,10 +28,13 @@ def process_images():
     # Initialize the HandDetector
     detector = HandDetector(model_path=model_path, num_hands=1)
 
-    # Ensure output directory exists
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-        print(f"Created output directory: {output_folder}")
+    # Remove previous processed dataset so run starts clean.
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
+        print(f"Removed existing output directory: {output_folder}")
+
+    os.makedirs(output_folder)
+    print(f"Created output directory: {output_folder}")
 
     print(f"Starting processing images from {input_folder}...")
 

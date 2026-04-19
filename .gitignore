@@ -52,6 +52,9 @@ coverage.xml
 .pytest_cache/
 cover/
 
+.codex
+IML_Session7_Student.ipynb
+
 # Translations
 *.mo
 *.pot

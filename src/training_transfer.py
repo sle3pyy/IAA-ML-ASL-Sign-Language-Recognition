@@ -56,7 +56,7 @@ DATA_DIR_TRAIN = os.path.join(CURRENT_DIR, "Data", "split", "train")
 DATA_DIR_VAL = os.path.join(CURRENT_DIR, "Data", "split", "val")
 DATA_DIR_TEST = os.path.join(CURRENT_DIR, "Data", "split", "test")
 
-MODEL_SAVE_PATH = os.path.join(CURRENT_DIR, "bingus_model.keras")
+MODEL_SAVE_PATH = os.path.join(CURRENT_DIR, "base_datasetABC_model.keras")
 
 
 def configure_device():
