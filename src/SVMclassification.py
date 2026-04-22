@@ -4,8 +4,8 @@ import time
 import argparse
 import joblib
 import numpy as np
-from HandTrackingModule import HandDetector
-from feature_extraction import extract_features_from_landmarks
+from utils.HandTrackingModule import HandDetector
+from utils.feature_extraction import extract_features_from_landmarks
 
 # Features order (MUST match the order used during training in train_svm.py)
 FEATURE_FIELDS = [

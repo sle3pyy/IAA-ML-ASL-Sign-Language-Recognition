@@ -1,6 +1,6 @@
 import cv2
 import os
-from HandTrackingModule import HandDetector
+from utils.HandTrackingModule import HandDetector
 import numpy as np
 import time
 import tensorflow as tf

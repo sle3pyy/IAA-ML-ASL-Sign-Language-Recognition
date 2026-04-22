@@ -38,10 +38,11 @@ def ensure_cuda_library_path():
 ensure_cuda_library_path()
 
 import tensorflow as tf
-from augmentation import augment
 
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+from utils.augmentation import augment
 
 IMG_SIZE = (299, 299)
 BATCH_SIZE = 16
@@ -52,11 +53,11 @@ STAGE2_LR = 0.0001
 FINE_TUNE_LAYERS = 30  
 SEED = 123
 
-DATA_DIR_TRAIN = os.path.join(CURRENT_DIR, "Data", "split", "train")
-DATA_DIR_VAL = os.path.join(CURRENT_DIR, "Data", "split", "val")
-DATA_DIR_TEST = os.path.join(CURRENT_DIR, "Data", "split", "test")
+DATA_DIR_TRAIN = os.path.join(BASE_DIR, "Data", "split", "train")
+DATA_DIR_VAL = os.path.join(BASE_DIR, "Data", "split", "val")
+DATA_DIR_TEST = os.path.join(BASE_DIR, "Data", "split", "test")
 
-MODEL_SAVE_PATH = os.path.join(CURRENT_DIR, "base_datasetABC_model.keras")
+MODEL_SAVE_PATH = os.path.join(BASE_DIR, "models", "base_datasetABC_model.keras")
 
 
 def configure_device():

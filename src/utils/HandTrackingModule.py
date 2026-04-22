@@ -8,7 +8,7 @@ class HandDetector:
     def __init__(self, model_path=None, num_hands=1, detection_confidence=0.5, tracking_confidence=0.5):
         if model_path is None:
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            model_path = os.path.join(current_dir, "utils", "hand_landmarker.task")
+            model_path = os.path.join(current_dir, "hand_landmarker.task")
 
         base_options = python.BaseOptions(model_asset_path=model_path)
         options = vision.HandLandmarkerOptions(

@@ -8,8 +8,8 @@ import logging
 # Add src folder to path to import HandTrackingModule and feature_extraction
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # This is 'src'
 sys.path.append(BASE_DIR)
-from HandTrackingModule import HandDetector
-from feature_extraction import extract_features_from_landmarks
+from utils.HandTrackingModule import HandDetector
+from utils.feature_extraction import extract_features_from_landmarks
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')

@@ -3,16 +3,7 @@ import shutil
 import cv2
 import numpy as np
 
-try:
-    from ..HandTrackingModule import HandDetector
-except ImportError:
-    import sys
-
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    src_dir = os.path.dirname(current_dir)
-    if src_dir not in sys.path:
-        sys.path.append(src_dir)
-    from HandTrackingModule import HandDetector
+from .HandTrackingModule import HandDetector
 
 
 def process_images():
