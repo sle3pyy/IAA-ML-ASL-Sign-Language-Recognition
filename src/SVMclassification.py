@@ -4,27 +4,29 @@ import time
 import argparse
 import joblib
 import numpy as np
+import pandas as pd
 from utils.HandTrackingModule import HandDetector
 from utils.feature_extraction import extract_features_from_landmarks
 
 # Features order (MUST match the order used during training in train_svm.py)
 FEATURE_FIELDS = [
-    'thumb_index_dist', 'index_middle_dist', 'middle_ring_dist', 
-    'ring_pinky_dist', 'thumb_ring_dist', 'thumb_pinky_dist', 'thumb_curl', 
-    'index_curl', 'middle_curl', 'ring_curl', 'pinky_curl', 'thumb_y', 
-    'index_y', 'middle_y', 'ring_y', 'pinky_y', 'hand_rotation', 
-    'thumb_angle', 'palm_tilt', 'spread_angle_1', 'spread_angle_2', 'y_variance'
+    'thumb_index_dist', 'thumb_index_8_dist', 'index_middle_dist', 
+    'middle_ring_dist', 'ring_pinky_dist', 'thumb_ring_dist', 'thumb_pinky_dist', 
+    'thumb_curl', 'index_curl', 'index_curl_8', 'middle_curl', 'ring_curl', 
+    'pinky_curl', 'thumb_y', 'index_y', 'index_8_y', 'index_5_y', 'middle_y', 
+    'ring_y', 'pinky_y', 'hand_rotation', 'thumb_angle', 'palm_tilt', 
+    'spread_angle_1', 'spread_angle_2', 'y_variance'
 ]
 
 def main():
     # Setup Argument Parser
     parser = argparse.ArgumentParser(description="Real-time ASL Classification using SVM")
     parser.add_argument(
-        "--model", default="asl_svm_model.pkl",
+        "--model", default="asl_svm_model_v3.pkl",
         help="Name of the saved SVM model in src/models/"
     )
     parser.add_argument(
-        "--scaler", default="asl_scaler.pkl",
+        "--scaler", default="asl_scaler_v3.pkl",
         help="Name of the saved Scaler in src/models/"
     )
     args = parser.parse_args()
@@ -77,8 +79,9 @@ def main():
                     # Convert dict to feature vector in the EXACT order the model expects
                     feature_vector = [features_dict[field] for field in FEATURE_FIELDS]
                     
-                    # Scale features
-                    features_scaled = scaler.transform([feature_vector])
+                    # Scale features (using DataFrame to keep feature names and avoid warnings)
+                    feature_df = pd.DataFrame([feature_vector], columns=FEATURE_FIELDS)
+                    features_scaled = scaler.transform(feature_df)
                     
                     # Predict class
                     pred_class = model.predict(features_scaled)[0]
@@ -87,11 +90,7 @@ def main():
                     if hasattr(model, "predict_proba"):
                         probs = model.predict_proba(features_scaled)[0]
                         confidence = np.max(probs)
-                        # Only show label if confidence is high enough
-                        if confidence > 0.7:
-                            label = f"ASL: {pred_class} ({confidence:.1%})"
-                        else:
-                            label = "Searching..."
+                        label = f"ASL: {pred_class} ({confidence:.1%})"
                     else:
                         label = f"ASL: {pred_class}"
                         

@@ -45,7 +45,7 @@ def extract_features_from_landmarks(landmarks, image_shape=None, label=None):
         return None
             
     normalized_points = {}
-    for idx in [0, 1, 3, 4, 6, 7, 9, 10, 12, 13, 15]:
+    for idx in [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15]:
         x = (landmarks[idx][0] - wrist_x) / hand_scale_px
         y = (landmarks[idx][1] - wrist_y) / hand_scale_px
         normalized_points[idx] = (x, y)
@@ -56,8 +56,13 @@ def extract_features_from_landmarks(landmarks, image_shape=None, label=None):
     middle_tip = normalized_points[9]
     ring_tip = normalized_points[12]
     pinky_tip = normalized_points[15]
+    
+    # Landmarks 8 and 5
+    index_tip_8 = normalized_points[8]
+    index_mcp_5 = normalized_points[5]
 
     thumb_index_dist = distance(thumb_tip, index_tip)
+    thumb_index_8_dist = distance(thumb_tip, index_tip_8)
     index_middle_dist = distance(index_tip, middle_tip)
     middle_ring_dist = distance(middle_tip, ring_tip)
     ring_pinky_dist = distance(ring_tip, pinky_tip)
@@ -67,6 +72,7 @@ def extract_features_from_landmarks(landmarks, image_shape=None, label=None):
     # Step 4: Curl features
     thumb_curl = distance(normalized_points[3], normalized_points[1])
     index_curl = distance(normalized_points[6], normalized_points[4])
+    index_curl_8 = distance(index_tip_8, index_mcp_5)
     middle_curl = distance(normalized_points[9], normalized_points[7])
     ring_curl = distance(normalized_points[12], normalized_points[10])
     pinky_curl = distance(normalized_points[15], normalized_points[13])
@@ -74,6 +80,8 @@ def extract_features_from_landmarks(landmarks, image_shape=None, label=None):
     # Step 5: Height features
     thumb_y = normalized_points[3][1]
     index_y = normalized_points[6][1]
+    index_8_y = index_tip_8[1]
+    index_5_y = index_mcp_5[1]
     middle_y = normalized_points[9][1]
     ring_y = normalized_points[12][1]
     pinky_y = normalized_points[15][1]
@@ -105,6 +113,7 @@ def extract_features_from_landmarks(landmarks, image_shape=None, label=None):
     # Assemble feature vector
     features = {
         'thumb_index_dist': thumb_index_dist,
+        'thumb_index_8_dist': thumb_index_8_dist,
         'index_middle_dist': index_middle_dist,
         'middle_ring_dist': middle_ring_dist,
         'ring_pinky_dist': ring_pinky_dist,
@@ -112,11 +121,14 @@ def extract_features_from_landmarks(landmarks, image_shape=None, label=None):
         'thumb_pinky_dist': thumb_pinky_dist,
         'thumb_curl': thumb_curl,
         'index_curl': index_curl,
+        'index_curl_8': index_curl_8,
         'middle_curl': middle_curl,
         'ring_curl': ring_curl,
         'pinky_curl': pinky_curl,
         'thumb_y': thumb_y,
         'index_y': index_y,
+        'index_8_y': index_8_y,
+        'index_5_y': index_5_y,
         'middle_y': middle_y,
         'ring_y': ring_y,
         'pinky_y': pinky_y,

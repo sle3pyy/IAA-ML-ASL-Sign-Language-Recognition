@@ -14,38 +14,52 @@ from sklearn.metrics import (
 from sklearn.preprocessing import StandardScaler
 import joblib
 import os
+import argparse
 
 # Define paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_PATH = os.path.join(BASE_DIR, "Data", "handmarks.csv")
 MODEL_DIR = os.path.join(BASE_DIR, "models")
-MODEL_PATH = os.path.join(MODEL_DIR, "asl_svm_model.pkl")
-SCALER_PATH = os.path.join(MODEL_DIR, "asl_scaler.pkl")
+MODEL_PATH = os.path.join(MODEL_DIR, "asl_svm_model_v3.pkl")
+SCALER_PATH = os.path.join(MODEL_DIR, "asl_scaler_v3.pkl")
 
 def train_asl_model():
+    parser = argparse.ArgumentParser(description="Train ASL SVM Model")
+    parser.add_argument("--train_data", default=os.path.join(BASE_DIR, "Data", "handmarks.csv"),
+                        help="Path to training CSV")
+    parser.add_argument("--val_data", default=None,
+                        help="Path to optional validation CSV")
+    args = parser.parse_args()
+
+    train_path = args.train_data
+    val_path = args.val_data
+
     # 1. Load the data
-    if not os.path.exists(DATA_PATH):
-        print(f"Error: Dataset not found at {DATA_PATH}")
+    if not os.path.exists(train_path):
+        print(f"Error: Training dataset not found at {train_path}")
         return
 
-    print(f"Loading data from {DATA_PATH}...")
-    df = pd.read_csv(DATA_PATH)
+    print(f"Loading training data from {train_path}...")
+    df_train = pd.read_csv(train_path)
+    X_train_raw = df_train.drop('label', axis=1)
+    y_train_raw = df_train['label']
+    classes = sorted(y_train_raw.unique())
 
-    # 2. Prepare features and target
-    X = df.drop('label', axis=1)
-    y = df['label']
-    classes = sorted(y.unique())
-
-    print(f"Dataset shape: {df.shape}")
-    print("\nClass Distribution:")
-    dist = y.value_counts(normalize=True) * 100
-    for cls, pct in dist.items():
-        print(f"  {cls}: {pct:.2f}% ({y.value_counts()[cls]} samples)")
-
-    # 3. Split into training and validation sets
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
+    if val_path and os.path.exists(val_path):
+        print(f"Loading validation data from {val_path}...")
+        df_val = pd.read_csv(val_path)
+        X_val_raw = df_val.drop('label', axis=1)
+        y_val_raw = df_val['label']
+        
+        X_train = X_train_raw
+        y_train = y_train_raw
+        X_test = X_val_raw
+        y_test = y_val_raw
+        print(f"Using provided validation set with {len(X_test)} samples.")
+    else:
+        print("No validation set provided. Splitting training data (80/20)...")
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_train_raw, y_train_raw, test_size=0.2, random_state=42, stratify=y_train_raw
+        )
 
     # 4. Feature Scaling
     print("\nScaling features...")
@@ -76,8 +90,8 @@ def train_asl_model():
     
     best_model = grid_search.best_estimator_
 
-    # 6. Final Evaluation on Hold-out Test Set
-    print("\nEvaluating best model on hold-out test set with robust metrics...")
+    # 6. Final Evaluation on Validation/Test Set
+    print("\nEvaluating best model on validation/test set...")
     y_pred = best_model.predict(X_test_scaled)
     
     accuracy = accuracy_score(y_test, y_pred)
@@ -85,12 +99,12 @@ def train_asl_model():
     macro_f1 = f1_score(y_test, y_pred, average='macro')
 
     print("\n" + "="*30)
-    print(f"Test Accuracy:          {accuracy:.4%}")
+    print(f"Accuracy:               {accuracy:.4%}")
     print(f"Balanced Accuracy:      {balanced_acc:.4%}")
     print(f"Macro F1-Score:         {macro_f1:.4f}")
     print("="*30)
     
-    print("\nClassification Report (Test Set):")
+    print("\nClassification Report:")
     print(classification_report(y_test, y_pred))
 
     # 7. Visualization: Confusion Matrix
