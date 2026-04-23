@@ -270,10 +270,20 @@ NOTE
 **Decision** : Keep the existing batch size of 16. **Rationale** : With ~9,500 images and a batch size of 16, each epoch processes ~594 batches. This gives the model enough gradient updates per epoch for stable learning. Going larger (32, 64) would reduce noise in gradient estimates but also reduce the number of weight updates per epoch, potentially slowing convergence. Going smaller (8, 4) would increase training time proportionally. 16 is a good default for transfer learning where the model doesn't need huge batches to converge, and it's memory-friendly for systems without a high-end GPU
 
 
-- changed the split frim 70/20/10 train/test/val to 80/20 train/test and used random 20% from train to validate after observing weird behaviour from the learning curves
+### Some insights into our changes 
+
+- changed the split frim 70/20/10 train/test/val to 80/20 train/test and used random 20% from train to validate after observing weird behaviour from the learning curves - A,B,C dataset
 
 ![alt text](../rel_data/learning_curve_tl.png)
 
-- after the change idk what the fuck happened and this is the result 
+- after the change the problem seem to persist 
 
 ![alt text](../rel_data/learning_curve_tl_after.png)
+
+- we might need to add some more classes for the curve to be evident. the previous models were tested with A,B and C which are very evident. adding y and f might make it more evident as B is very close to F and A is fairly similar to Y and L fairly similar to C.
+
+![alt text](../rel_data/learning_curve_tl_sense.png)
+
+- as shown in this graph the problem was the vast difference between classes, as when there was slight changes within different classes the curve became the expected result. There appears to be no overfitting with large quantities of training data. In smaller quantities of data the dataset does have some overfitting problems probably due to the lack of generalization
+
+-  In conclusion, the current three-class setup (A, B, C) may simply be too easy to reveal overfitting or data-scaling effects clearly as they are too different.
