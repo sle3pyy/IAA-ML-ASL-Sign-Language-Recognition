@@ -1,4 +1,4 @@
-# Phase 1: Summary for Deliverable 2
+# Phase 1: Transfer Learning
 
 ## Data processing methodology
 
@@ -23,7 +23,7 @@ The main model explored in this phase was a transfer learning classifier with `I
 
 The choice of transfer learning with InceptionV3 was motivated by four main reasons:
 
-- The available dataset is still relatively small for training a deep CNN from scratch.
+- Our professor suggested it :D
 - The problem is visual and benefits from representations already learned on large image datasets.
 - InceptionV3 naturally operates with `299x299`, which fits well with the cropped-image pipeline.
 - The use of a pretrained backbone makes it possible to obtain a strong baseline with less training time and lower risk of instability.
@@ -35,19 +35,33 @@ Two training phases were explored:
 
 During this phase, learning curves were also analysed to assess whether more data was improving generalisation. The results showed that the dataset is, in general, highly learnable, but that smaller subsets appear to be less representative of the full variability, which justifies using the largest possible number of processed samples.
 
+### Confusion matrixes and their revelations
+
+- Using data to validate from the dataset itself we obtain this matix
+
+![alt text](../src/relevant_data/confusion_matrix_tl_full_bias.png)
+
+
+- Althought this seems strong when validating with images taken by us this is the result:
+
+![alt text](../src/relevant_data/confusion_matrix_real.png)
+
+- Here it shows that the classes A, B and C are still very consistent while the rest is very inconsistent, which could be because of the fact they derive from different datasets (A,B,C are from one dataset and Y,L,F are from another). We are working on figuring how the fix for these issues.
+
+
 ### Insights into our changes 
 
 - Changed the split from 70/20/10 train/test/val to 80/20 train/test and used random 20% from train to validate after observing weird behaviour from the learning curves - A,B,C dataset
 
-![alt text](../src/rel_data/learning_curve_tl.png)
+![alt text](../src/relevant_data/learning_curve_tl.png)
 
 - After the change the problem seem to persist 
 
-![alt text](../src/rel_data/learning_curve_tl_after.png)
+![alt text](../src/relevant_data/learning_curve_tl_after.png)
 
 - We felt we might have needed to add some more classes for the curve to be evident. Previous models were tested with A,B and C which are very different. Adding Y and F might make it more evident as B is very close to F and A is fairly similar to Y and L fairly similar to C.
 
-![alt text](../src/rel_data/learning_curve_tl_sense.png)
+![alt text](../src/relevant_data/learning_curve_tl_sense.png)
 
 - As shown in this graph the problem was the vast difference between classes, as when there was slight changes within different classes the curve became the expected result. There appears to be no overfitting with large quantities of training data. In smaller quantities of data the dataset does have some overfitting problems probably due to the lack of generalization
 
