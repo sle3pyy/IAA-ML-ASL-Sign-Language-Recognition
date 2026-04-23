@@ -3,8 +3,50 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import tensorflow as tf
 from pathlib import Path
+
+
+def ensure_cuda_library_path():
+    if os.environ.get("TF_CUDA_LIBS_READY") == "1":
+        return
+
+    site_packages = (
+        Path(sys.prefix)
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+        / "nvidia"
+    )
+    lib_dirs = [
+        site_packages / "cuda_runtime" / "lib",
+        site_packages / "cudnn" / "lib",
+        site_packages / "cublas" / "lib",
+        site_packages / "cufft" / "lib",
+        site_packages / "curand" / "lib",
+        site_packages / "cusolver" / "lib",
+        site_packages / "cusparse" / "lib",
+        site_packages / "nccl" / "lib",
+        site_packages / "nvjitlink" / "lib",
+    ]
+    existing_dirs = [str(path) for path in lib_dirs if path.exists()]
+
+    if not existing_dirs:
+        return
+
+    current_ld_path = os.environ.get("LD_LIBRARY_PATH", "")
+    current_entries = [entry for entry in current_ld_path.split(":") if entry]
+    new_entries = [entry for entry in existing_dirs if entry not in current_entries]
+    if not new_entries:
+        return
+
+    os.environ["LD_LIBRARY_PATH"] = ":".join(new_entries + current_entries)
+    os.environ["TF_CUDA_LIBS_READY"] = "1"
+    os.execvpe(sys.executable, [sys.executable] + sys.argv, os.environ)
+
+
+ensure_cuda_library_path()
+
+import tensorflow as tf
 
 # --- Config ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
@@ -15,6 +57,7 @@ from utils.augmentation import augment
 
 IMG_SIZE = (299, 299)
 BATCH_SIZE = 32 # Increased batch size for faster iterations
+VAL_SPLIT = 0.2
 STAGE1_EPOCHS = 15
 STAGE2_EPOCHS = 20
 STAGE1_LR = 0.001
@@ -22,10 +65,24 @@ STAGE2_LR = 0.0001
 FINE_TUNE_LAYERS = 30
 SEED = 123
 
-DATA_DIR_TRAIN = os.path.join(BASE_DIR, "Data", "split", "train")
-DATA_DIR_VAL = os.path.join(BASE_DIR, "Data", "split", "val")
+DATA_DIR_DEV = os.path.join(BASE_DIR, "Data", "split", "train")
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 PLOT_PATH = os.path.join(MODEL_DIR, "learning_curve_tl.png")
+
+
+def configure_device():
+    gpus = tf.config.list_physical_devices("GPU")
+    if not gpus:
+        print("No GPU detected by TensorFlow. Training will run on CPU.")
+        return
+
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+
+    print(f"Using GPU: {[gpu.name for gpu in gpus]}")
+
+
+configure_device()
 
 def build_model(n_classes):
     inception = tf.keras.applications.InceptionV3(
@@ -46,9 +103,11 @@ def build_model(n_classes):
     return model, inception
 
 def get_learning_curve():
-    # 1. Load full datasets
+    # 1. Load development split and derive a fixed validation set from it.
     train_ds_full = tf.keras.utils.image_dataset_from_directory(
-        DATA_DIR_TRAIN,
+        DATA_DIR_DEV,
+        validation_split=VAL_SPLIT,
+        subset="training",
         seed=SEED,
         image_size=IMG_SIZE,
         batch_size=None, # Load unbatched first for easy splitting
@@ -56,7 +115,9 @@ def get_learning_curve():
     )
     
     val_ds = tf.keras.utils.image_dataset_from_directory(
-        DATA_DIR_VAL,
+        DATA_DIR_DEV,
+        validation_split=VAL_SPLIT,
+        subset="validation",
         seed=SEED,
         image_size=IMG_SIZE,
         batch_size=BATCH_SIZE,
@@ -66,6 +127,10 @@ def get_learning_curve():
     class_names = train_ds_full.class_names
     n_classes = len(class_names)
     total_samples = tf.data.experimental.cardinality(train_ds_full).numpy()
+    print(
+        f"Using development split from {DATA_DIR_DEV} with "
+        f"{1.0 - VAL_SPLIT:.0%}/{VAL_SPLIT:.0%} train/validation partition."
+    )
     
     fractions = [0.2, 0.4, 0.6, 0.8, 1.0]
     results = []
@@ -88,11 +153,7 @@ def get_learning_curve():
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=STAGE1_LR),
             loss="sparse_categorical_crossentropy",
-            metrics=[
-                "accuracy",
-                tf.keras.metrics.Precision(name="precision"),
-                tf.keras.metrics.Recall(name="recall")
-            ]
+            metrics=["accuracy"]
         )
         
         model.fit(curr_train_ds, epochs=STAGE1_EPOCHS, validation_data=val_ds, 
@@ -105,11 +166,7 @@ def get_learning_curve():
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=STAGE2_LR),
             loss="sparse_categorical_crossentropy",
-            metrics=[
-                "accuracy",
-                tf.keras.metrics.Precision(name="precision"),
-                tf.keras.metrics.Recall(name="recall")
-            ]
+            metrics=["accuracy"]
         )
         
         history = model.fit(curr_train_ds, epochs=STAGE2_EPOCHS, validation_data=val_ds,
@@ -118,18 +175,12 @@ def get_learning_curve():
         
         # Record best metrics
         best_val_acc = max(history.history['val_accuracy'])
-        best_val_prec = history.history['val_precision'][np.argmax(history.history['val_accuracy'])]
-        best_val_rec = history.history['val_recall'][np.argmax(history.history['val_accuracy'])]
-        
-        # Calculate F1-Score for the curve
-        if (best_val_prec + best_val_rec) > 0:
-            val_f1 = 2 * (best_val_prec * best_val_rec) / (best_val_prec + best_val_rec)
-        else:
-            val_f1 = 0
-            
+        # With sparse multiclass labels we track validation accuracy during training;
+        # detailed precision/recall/F1 are computed offline from predictions.
+        val_score = best_val_acc
         train_acc = history.history['accuracy'][-1]
-        results.append((num_samples, train_acc, val_f1))
-        print(f"Result for {num_samples} samples -> Train Acc: {train_acc:.4f}, Val F1: {val_f1:.4f} (P: {best_val_prec:.4f}, R: {best_val_rec:.4f})")
+        results.append((num_samples, train_acc, val_score))
+        print(f"Result for {num_samples} samples -> Train Acc: {train_acc:.4f}, Val Acc: {val_score:.4f}")
 
     # Plotting
     samples, train_scores, val_scores = zip(*results)
@@ -138,7 +189,7 @@ def get_learning_curve():
     sns.set_style("whitegrid")
     
     plt.plot(samples, train_scores, 'o-', label="Training Accuracy", color="#3498db", linewidth=2)
-    plt.plot(samples, val_scores, 'o-', label="Validation F1-Score", color="#e74c3c", linewidth=2)
+    plt.plot(samples, val_scores, 'o-', label="Validation Accuracy", color="#e74c3c", linewidth=2)
     
     plt.title("Transfer Learning Curve (InceptionV3)", fontsize=16, fontweight='bold', pad=20)
     plt.xlabel("Number of Training Samples", fontsize=12, labelpad=10)

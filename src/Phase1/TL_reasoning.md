@@ -177,10 +177,7 @@ IMPORTANT
 
 IMPORTANT
 
-**Do you want a proper train/val/test split?** Currently the code only does train/val (80/20). For a university project, you should have a separate test set. I can either:
-
-- (A) Split `Data/processed/` into 70/15/15 (train/val/test)
-- (B) Use `Data/processed/` for train/val and the existing `Data/testing/` for test (but it only has 3 images, which is not enough)
+**Do you want a proper held-out test set?** Recommended setup: split `Data/processed/` into `80/20` development/test and derive validation from the development pool with `validation_split=0.2`, giving an effective `64/16/20` train/val/test allocation.
 
 NOTE
 
@@ -271,3 +268,12 @@ NOTE
 ### 13. Batch size of 16 (unchanged)
 
 **Decision** : Keep the existing batch size of 16. **Rationale** : With ~9,500 images and a batch size of 16, each epoch processes ~594 batches. This gives the model enough gradient updates per epoch for stable learning. Going larger (32, 64) would reduce noise in gradient estimates but also reduce the number of weight updates per epoch, potentially slowing convergence. Going smaller (8, 4) would increase training time proportionally. 16 is a good default for transfer learning where the model doesn't need huge batches to converge, and it's memory-friendly for systems without a high-end GPU
+
+
+- changed the split frim 70/20/10 train/test/val to 80/20 train/test and used random 20% from train to validate after observing weird behaviour from the learning curves
+
+![alt text](../rel_data/learning_curve_tl.png)
+
+- after the change idk what the fuck happened and this is the result 
+
+![alt text](../rel_data/learning_curve_tl_after.png)

@@ -3,7 +3,7 @@ import shutil
 import cv2
 import numpy as np
 
-from .HandTrackingModule import HandDetector
+from HandTrackingModule import HandDetector
 
 
 def process_images():

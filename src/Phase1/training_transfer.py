@@ -46,6 +46,7 @@ from utils.augmentation import augment
 
 IMG_SIZE = (299, 299)
 BATCH_SIZE = 16
+VAL_SPLIT = 0.2
 STAGE1_EPOCHS = 30
 STAGE2_EPOCHS = 50  
 STAGE1_LR = 0.001
@@ -53,8 +54,7 @@ STAGE2_LR = 0.0001
 FINE_TUNE_LAYERS = 30  
 SEED = 123
 
-DATA_DIR_TRAIN = os.path.join(BASE_DIR, "Data", "split", "train")
-DATA_DIR_VAL = os.path.join(BASE_DIR, "Data", "split", "val")
+DATA_DIR_DEV = os.path.join(BASE_DIR, "Data", "split", "train")
 DATA_DIR_TEST = os.path.join(BASE_DIR, "Data", "split", "test")
 
 MODEL_SAVE_PATH = os.path.join(BASE_DIR, "models", "base_datasetABC_model.keras")
@@ -77,7 +77,9 @@ configure_device()
 print("Loading datasets...")
 
 train_ds = tf.keras.utils.image_dataset_from_directory(
-    DATA_DIR_TRAIN,
+    DATA_DIR_DEV,
+    validation_split=VAL_SPLIT,
+    subset="training",
     seed=SEED,
     image_size=IMG_SIZE,
     batch_size=BATCH_SIZE,
@@ -85,7 +87,9 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
 )
 
 val_ds = tf.keras.utils.image_dataset_from_directory(
-    DATA_DIR_VAL,
+    DATA_DIR_DEV,
+    validation_split=VAL_SPLIT,
+    subset="validation",
     seed=SEED,
     image_size=IMG_SIZE,
     batch_size=BATCH_SIZE,
@@ -103,6 +107,10 @@ test_ds = tf.keras.utils.image_dataset_from_directory(
 class_names = train_ds.class_names
 n_classes = len(class_names)
 print(f"Classes ({n_classes}): {class_names}")
+print(
+    f"Using development split from {DATA_DIR_DEV} with "
+    f"{1.0 - VAL_SPLIT:.0%}/{VAL_SPLIT:.0%} train/validation partition."
+)
 
 train_ds = train_ds.unbatch()
 train_ds = train_ds.map(augment, num_parallel_calls=tf.data.AUTOTUNE)
@@ -165,11 +173,9 @@ print("=" * 60)
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=STAGE1_LR),
     loss="sparse_categorical_crossentropy",
-    metrics=[
-        "accuracy",
-        tf.keras.metrics.Precision(name="precision"),
-        tf.keras.metrics.Recall(name="recall")
-    ],
+    # Sparse integer labels + softmax multiclass outputs work cleanly with accuracy here.
+    # Per-class precision/recall are computed later in the evaluation script.
+    metrics=["accuracy"],
 )
 
 history_stage1 = model.fit(
@@ -197,11 +203,7 @@ print(f"Trainable layers in inception: {trainable_count}/{total_count}")
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=STAGE2_LR),
     loss="sparse_categorical_crossentropy",
-    metrics=[
-        "accuracy",
-        tf.keras.metrics.Precision(name="precision"),
-        tf.keras.metrics.Recall(name="recall")
-    ],
+    metrics=["accuracy"],
 )
 
 stage1_end_epoch = len(history_stage1.history["loss"])

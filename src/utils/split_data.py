@@ -1,5 +1,7 @@
 """
-Split Data/processed/ into train/val/test directories (70/15/15).
+Split Data/processed/ into train/test directories (80/20).
+Validation is derived later from the training split inside the transfer-learning
+scripts via TensorFlow's validation_split.
 Maintains class folder structure. Uses deterministic seed for reproducibility.
 """
 import os
@@ -7,18 +9,19 @@ import shutil
 import random
 
 SEED = 42
-TRAIN_RATIO = 0.70
-VAL_RATIO = 0.15
-TEST_RATIO = 0.15
+TRAIN_RATIO = 0.80
+TEST_RATIO = 0.20
 
 def split_data():
+    if abs((TRAIN_RATIO + TEST_RATIO) - 1.0) > 1e-9:
+        raise ValueError("TRAIN_RATIO and TEST_RATIO must sum to 1.0")
+
     random.seed(SEED)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     src_dir = os.path.dirname(current_dir)
     source_dir = os.path.join(src_dir, "Data", "processed")
     output_dirs = {
         "train": os.path.join(src_dir, "Data", "split", "train"),
-        "val": os.path.join(src_dir, "Data", "split", "val"),
         "test": os.path.join(src_dir, "Data", "split", "test"),
     }
 
@@ -35,7 +38,7 @@ def split_data():
     ])
     print(f"Found classes: {class_names}")
 
-    stats = {"train": {}, "val": {}, "test": {}}
+    stats = {"train": {}, "test": {}}
 
     for class_name in class_names:
         class_path = os.path.join(source_dir, class_name)
@@ -50,13 +53,12 @@ def split_data():
         random.shuffle(images)
 
         total = len(images)
-        train_end = int(total * TRAIN_RATIO)
-        val_end = train_end + int(total * VAL_RATIO)
+        train_count = int(total * TRAIN_RATIO)
+        test_count = total - train_count
 
         splits = {
-            "train": images[:train_end],
-            "val": images[train_end:val_end],
-            "test": images[val_end:],
+            "train": images[:train_count],
+            "test": images[train_count:train_count + test_count],
         }
 
         for split_name, split_images in splits.items():
