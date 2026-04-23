@@ -103,7 +103,10 @@ joblib.dump(scaler, 'src/models/asl_scaler.pkl')
 
 - **Normalization:** `StandardScaler` is necessary to center the data for the SVM optimizer.
 - **Handling Imbalance:** We use `class_weight='balanced'` in the SVC constructor to penalize mistakes on minority classes more heavily.
-- **Robust Metrics**: 
-    - **Balanced Accuracy**: The average of recall obtained on each class.
-    - **Macro F1-Score**: The arithmetic mean of all the per-class F1-scores.
+- **Robust Metrics**:
+  - **Balanced Accuracy**: The average of recall obtained on each class.
+  - **Macro F1-Score**: The arithmetic mean of all the per-class F1-scores.
 - **Cross-Validation**: `GridSearchCV` provides a more robust estimate of model performance than a single split.
+
+Started using a collection of live taken photos not present in the dataset (collected by me).
+The confusion matrix now correctly reflects that the model confuses B with F most of the time.
