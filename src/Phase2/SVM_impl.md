@@ -83,7 +83,7 @@ best_model = grid_search.best_estimator_
 After finding the best estimator via cross-validation, evaluate its final performance on a hold-out test set using metrics that are robust to class imbalance.
 
 ```python
-from sklearn.metrics import balanced_accuracy_score, f1_score, matthews_corrcoef
+from sklearn.metrics import balanced_accuracy_score, f1_score
 
 # Evaluate performance on unseen test data
 y_pred = best_model.predict(X_test_scaled)
@@ -91,7 +91,6 @@ y_pred = best_model.predict(X_test_scaled)
 print(f"Test Accuracy:       {accuracy_score(y_test, y_pred):.4%}")
 print(f"Balanced Accuracy:   {balanced_accuracy_score(y_test, y_pred):.4%}")
 print(f"Macro F1-Score:      {f1_score(y_test, y_pred, average='macro'):.4f}")
-print(f"Matthews Corr Coeff: {matthews_corrcoef(y_test, y_pred):.4f}")
 
 print(classification_report(y_test, y_pred))
 
@@ -104,8 +103,7 @@ joblib.dump(scaler, 'src/models/asl_scaler.pkl')
 
 - **Normalization:** `StandardScaler` is necessary to center the data for the SVM optimizer.
 - **Handling Imbalance:** We use `class_weight='balanced'` in the SVC constructor to penalize mistakes on minority classes more heavily.
-- **Robust Metrics:** 
-    - **Balanced Accuracy:** The average of recall obtained on each class.
-    - **Macro F1-Score:** The arithmetic mean of all the per-class F1-scores.
-    - **Matthews Correlation Coefficient (MCC):** A more reliable statistical rate which produces a high score only if the prediction obtained good results in all of the four confusion matrix categories.
-- **Cross-Validation:** `GridSearchCV` provides a more robust estimate of model performance than a single split.
+- **Robust Metrics**: 
+    - **Balanced Accuracy**: The average of recall obtained on each class.
+    - **Macro F1-Score**: The arithmetic mean of all the per-class F1-scores.
+- **Cross-Validation**: `GridSearchCV` provides a more robust estimate of model performance than a single split.

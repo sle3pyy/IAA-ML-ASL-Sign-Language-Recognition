@@ -9,8 +9,7 @@ from sklearn.metrics import (
     classification_report, 
     confusion_matrix, 
     balanced_accuracy_score, 
-    f1_score, 
-    matthews_corrcoef
+    f1_score
 )
 from sklearn.preprocessing import StandardScaler
 import joblib
@@ -84,13 +83,11 @@ def train_asl_model():
     accuracy = accuracy_score(y_test, y_pred)
     balanced_acc = balanced_accuracy_score(y_test, y_pred)
     macro_f1 = f1_score(y_test, y_pred, average='macro')
-    mcc = matthews_corrcoef(y_test, y_pred)
 
     print("\n" + "="*30)
     print(f"Test Accuracy:          {accuracy:.4%}")
     print(f"Balanced Accuracy:      {balanced_acc:.4%}")
     print(f"Macro F1-Score:         {macro_f1:.4f}")
-    print(f"Matthews Corr Coeff:    {mcc:.4f}")
     print("="*30)
     
     print("\nClassification Report (Test Set):")

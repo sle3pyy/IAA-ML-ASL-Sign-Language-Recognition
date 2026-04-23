@@ -165,7 +165,11 @@ print("=" * 60)
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=STAGE1_LR),
     loss="sparse_categorical_crossentropy",
-    metrics=["accuracy"],
+    metrics=[
+        "accuracy",
+        tf.keras.metrics.Precision(name="precision"),
+        tf.keras.metrics.Recall(name="recall")
+    ],
 )
 
 history_stage1 = model.fit(
@@ -193,7 +197,11 @@ print(f"Trainable layers in inception: {trainable_count}/{total_count}")
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=STAGE2_LR),
     loss="sparse_categorical_crossentropy",
-    metrics=["accuracy"],
+    metrics=[
+        "accuracy",
+        tf.keras.metrics.Precision(name="precision"),
+        tf.keras.metrics.Recall(name="recall")
+    ],
 )
 
 stage1_end_epoch = len(history_stage1.history["loss"])
