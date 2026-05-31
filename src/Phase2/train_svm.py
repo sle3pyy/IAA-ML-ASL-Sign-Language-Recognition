@@ -19,8 +19,8 @@ import argparse
 # Define paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.join(BASE_DIR, "models")
-MODEL_PATH = os.path.join(MODEL_DIR, "asl_svm_model_v3.pkl")
-SCALER_PATH = os.path.join(MODEL_DIR, "asl_scaler_v3.pkl")
+MODEL_PATH = os.path.join(MODEL_DIR, "asl_svm_model_v5.pkl")
+SCALER_PATH = os.path.join(MODEL_DIR, "asl_scaler_v5.pkl")
 
 def train_asl_model():
     parser = argparse.ArgumentParser(description="Train ASL SVM Model")
@@ -42,7 +42,6 @@ def train_asl_model():
     df_train = pd.read_csv(train_path)
     X_train_raw = df_train.drop('label', axis=1)
     y_train_raw = df_train['label']
-    classes = sorted(y_train_raw.unique())
 
     if val_path and os.path.exists(val_path):
         print(f"Loading validation data from {val_path}...")
@@ -61,13 +60,7 @@ def train_asl_model():
             X_train_raw, y_train_raw, test_size=0.2, random_state=42, stratify=y_train_raw
         )
 
-    # 4. Feature Scaling
-    print("\nScaling features...")
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-
-    # 5. Hyperparameter Tuning with GridSearchCV (incorporates Cross-Validation)
+    # 4. Hyperparameter Tuning with GridSearchCV (incorporates Cross-Validation)
     print("Performing hyperparameter tuning with GridSearchCV (5-fold CV)...")
     param_grid = {
         'C': [0.1, 1, 10, 100],
@@ -83,7 +76,7 @@ def train_asl_model():
         verbose=1
     )
 
-    grid_search.fit(X_train_scaled, y_train)
+    grid_search.fit(X_train, y_train)
     
     print(f"\nBest parameters: {grid_search.best_params_}")
     print(f"Best cross-validation weighted F1-score: {grid_search.best_score_:.4f}")
@@ -92,7 +85,7 @@ def train_asl_model():
 
     # 6. Final Evaluation on Validation/Test Set
     print("\nEvaluating best model on validation/test set...")
-    y_pred = best_model.predict(X_test_scaled)
+    y_pred = best_model.predict(X_test)
     
     accuracy = accuracy_score(y_test, y_pred)
     balanced_acc = balanced_accuracy_score(y_test, y_pred)
@@ -107,31 +100,50 @@ def train_asl_model():
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred))
 
-    # 7. Visualization: Confusion Matrix
-    print("\nGenerating confusion matrix...")
-    cm = confusion_matrix(y_test, y_pred)
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=classes, 
-                yticklabels=classes)
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-    plt.title('ASL Recognition: Confusion Matrix')
-    plt.tight_layout()
+    # 7. Visualization: Confusion Matrices (Raw and Percentage)
+    print("\nGenerating and saving confusion matrices...")
+    
+    # Determine labels for the confusion matrix based on what was actually evaluated
+    eval_labels = sorted(list(set(y_test.unique()) | set(y_pred)))
+    
+    # Compute Raw and Percentage Confusion Matrices
+    cm = confusion_matrix(y_test, y_pred, labels=eval_labels)
+    cm_percentage = confusion_matrix(y_test, y_pred, labels=eval_labels, normalize='true')
     
     if not os.path.exists(MODEL_DIR):
         os.makedirs(MODEL_DIR)
         
+    # Plot and Save Raw Confusion Matrix Heatmap
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                xticklabels=eval_labels, 
+                yticklabels=eval_labels)
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.title('ASL Recognition: Raw Confusion Matrix')
+    plt.tight_layout()
     cm_plot_path = os.path.join(MODEL_DIR, 'confusion_matrix.png')
-    plt.savefig(cm_plot_path)
-    print(f"Confusion matrix saved to {cm_plot_path}")
+    plt.savefig(cm_plot_path, dpi=300)
+    plt.close()
+    print(f"Raw confusion matrix saved to {cm_plot_path}")
 
-    # 8. Save the Model and Scaler
+    # Plot and Save Percentage Confusion Matrix Heatmap
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm_percentage * 100, annot=True, fmt='.2f', cmap='Oranges', 
+                xticklabels=eval_labels, 
+                yticklabels=eval_labels)
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.title('ASL Recognition: Confusion Matrix (Percentage %)')
+    plt.tight_layout()
+    cm_pct_plot_path = os.path.join(MODEL_DIR, 'confusion_matrix_percentage.png')
+    plt.savefig(cm_pct_plot_path, dpi=300)
+    plt.close()
+    print(f"Percentage confusion matrix saved to {cm_pct_plot_path}")
+
+    # 8. Save the Model
     print(f"\nSaving best model to {MODEL_PATH}...")
     joblib.dump(best_model, MODEL_PATH)
-    
-    print(f"Saving scaler to {SCALER_PATH}...")
-    joblib.dump(scaler, SCALER_PATH)
 
     print("\nTraining complete!")
 

@@ -173,29 +173,35 @@ def get_learning_curve():
                             callbacks=[tf.keras.callbacks.EarlyStopping(patience=3, restore_best_weights=True)],
                             verbose=0)
         
-        # Record best metrics
-        best_val_acc = max(history.history['val_accuracy'])
-        # With sparse multiclass labels we track validation accuracy during training;
-        # detailed precision/recall/F1 are computed offline from predictions.
-        val_score = best_val_acc
+        # Calculate F1-score on validation set
+        from sklearn.metrics import f1_score
+        y_true = []
+        y_pred = []
+        for x, y in val_ds:
+            y_true.extend(y.numpy())
+            preds = model.predict(x, verbose=0)
+            y_pred.extend(np.argmax(preds, axis=1))
+        
+        val_f1 = f1_score(y_true, y_pred, average='macro')
         train_acc = history.history['accuracy'][-1]
-        results.append((num_samples, train_acc, val_score))
-        print(f"Result for {num_samples} samples -> Train Acc: {train_acc:.4f}, Val Acc: {val_score:.4f}")
+        results.append((num_samples, train_acc, val_f1))
+        print(f"Result for {num_samples} samples -> Train Acc: {train_acc:.4f}, Val F1-Score: {val_f1:.4f}")
 
     # Plotting
-    samples, train_scores, val_scores = zip(*results)
+    samples, train_scores, val_f1_scores = zip(*results)
     
     plt.figure(figsize=(12, 8))
     sns.set_style("whitegrid")
     
     plt.plot(samples, train_scores, 'o-', label="Training Accuracy", color="#3498db", linewidth=2)
-    plt.plot(samples, val_scores, 'o-', label="Validation Accuracy", color="#e74c3c", linewidth=2)
+    plt.plot(samples, val_f1_scores, 'o-', label="Validation F1-Score (Macro)", color="#e74c3c", linewidth=2)
     
-    plt.title("Transfer Learning Curve (InceptionV3)", fontsize=16, fontweight='bold', pad=20)
+    plt.title("Transfer Learning Curve - InceptionV3 (F1-Score)", fontsize=16, fontweight='bold', pad=20)
     plt.xlabel("Number of Training Samples", fontsize=12, labelpad=10)
     plt.ylabel("Score", fontsize=12, labelpad=10)
     plt.legend(loc="lower right", shadow=True)
     plt.grid(True, linestyle='--', alpha=0.7)
+    plt.ylim(0, 1.05)
     
     plt.tight_layout()
     os.makedirs(MODEL_DIR, exist_ok=True)

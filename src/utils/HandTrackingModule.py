@@ -29,6 +29,11 @@ class HandDetector:
             (5, 9), (9, 13), (13, 17)            # Palm
         ]
 
+    def close(self):
+        """Explicitly release MediaPipe resources."""
+        if hasattr(self, 'detector'):
+            self.detector.close()
+
     def findHands(self, img, draw=False, offset=20):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_rgb)
