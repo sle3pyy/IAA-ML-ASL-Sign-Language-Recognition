@@ -13,6 +13,7 @@ src/models/*
 !src/models/asl_svm_model_v5.pkl
 # C extensions
 *.so
+*.tex
 
 # Distribution / packaging
 .Python
