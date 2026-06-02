@@ -41,13 +41,10 @@ def main():
         return os.path.join(MODEL_DIR, path_arg)
 
     model_path = resolve_model_path(args.model)
-    scaler_path = resolve_model_path(args.scaler)
 
-    # Load Model and Scaler
-    if not os.path.exists(model_path) or not os.path.exists(scaler_path):
-        print(f"Error: Model or Scaler not found in {MODEL_DIR}")
-        print(f"Resolved model path: {model_path}")
-        print(f"Resolved scaler path: {scaler_path}")
+    # Load Model
+    if not os.path.exists(model_path):
+        print(f"Error: Model not found at {model_path}")
         return
 
     print(f"Loading SVM model from {model_path}...")

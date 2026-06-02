@@ -3,7 +3,14 @@ __pycache__/
 *.py[codz]
 *$py.class
 Data/
+!src/Data/
+src/Data/*
+!src/Data/handmarks.csv
+
 src/models/
+!src/models/
+src/models/*
+!src/models/asl_svm_model_v5.pkl
 # C extensions
 *.so
 *.tex
@@ -210,3 +217,4 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+/Data/*/
